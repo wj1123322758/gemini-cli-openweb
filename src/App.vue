@@ -20,7 +20,7 @@
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-green-500">
           <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          System Active
+          系统就绪
         </div>
       </div>
     </header>

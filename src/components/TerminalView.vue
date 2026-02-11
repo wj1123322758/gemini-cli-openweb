@@ -54,27 +54,28 @@ let term = null
 let fitAddon = null
 
 const basicCmds = [
+  { label: '启动', value: 'gemini', title: '运行 Gemini CLI' },
   { label: 'Shell', value: '!', title: '切换 Shell 模式' },
-  { label: 'Clear', value: '/clear', title: '清空终端和上下文' },
-  { label: 'Help', value: '/help', title: '显示帮助' },
+  { label: '清屏', value: '/clear', title: '清空终端和上下文' },
+  { label: '帮助', value: '/help', title: '显示帮助信息' },
 ]
 
 const sessionCmds = [
-  { label: 'Summary', value: '/compress', title: '压缩并总结上下文' },
-  { label: 'Rewind', value: '/rewind', title: '回退消息' },
-  { label: 'List', value: '/chat list', title: '列出保存的会话' },
+  { label: '总结', value: '/compress', title: '压缩并总结当前上下文' },
+  { label: '回退', value: '/rewind', title: '浏览并回退消息' },
+  { label: '列表', value: '/chat list', title: '列出所有保存的会话' },
 ]
 
 const systemCmds = [
-  { label: 'Model', value: '/model', title: '切换模型' },
-  { label: 'Theme', value: '/theme', title: '切换主题' },
-  { label: 'Login', value: '/auth login', title: '登录/认证' },
-  { label: 'Vim', value: '/vim', title: '切换 Vim 模式' },
+  { label: '模型', value: '/model', title: '切换 AI 模型' },
+  { label: '主题', value: '/theme', title: '切换界面主题' },
+  { label: '登录', value: '/auth login', title: '账号登录与认证' },
+  { label: 'Vim', value: '/vim', title: '开启/关闭 Vim 模式' },
 ]
 
 const toolCmds = [
-  { label: 'MCP', value: '/mcp list', title: '列出 MCP 服务器' },
-  { label: 'Mem', value: '/memory show', title: '显示记忆内容' },
+  { label: 'MCP', value: '/mcp list', title: '查看 MCP 服务器列表' },
+  { label: '记忆', value: '/memory show', title: '显示当前 AI 记忆内容' },
   { label: 'YOLO', value: '\x19', title: '切换自动批准模式 (Ctrl+Y)' },
 ]
 

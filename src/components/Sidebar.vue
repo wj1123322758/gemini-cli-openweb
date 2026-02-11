@@ -2,7 +2,7 @@
   <aside class="flex flex-col bg-lab-surface/50 border-r border-lab-border select-none overflow-hidden">
     <!-- Header -->
     <div class="px-6 py-4 flex-shrink-0 flex items-center justify-between border-b border-lab-border/30">
-      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-lab-text-dim/60">Checkpoints</h2>
+      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-lab-text-dim/60">会话存档 (Checkpoints)</h2>
       <button 
         @click="store.socket.emit('get-checkpoints')"
         class="text-lab-text-dim hover:text-lab-primary transition-colors transform hover:rotate-180 duration-500"
@@ -16,7 +16,7 @@
     <!-- Scrollable List -->
     <div class="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
       <div v-if="store.checkpoints.length === 0" class="p-6 text-center italic text-xs text-lab-text-dim/40 border-2 border-dashed border-lab-border rounded-xl">
-        No tags detected
+        未检测到存档标签
       </div>
 
       <!-- Main Card Container -->
@@ -37,20 +37,20 @@
               @click="store.smartRun(session.tag, session.name)"
               class="px-2 py-1 bg-lab-primary text-white text-[10px] font-bold rounded shadow hover:scale-105 active:scale-95 transition"
             >
-              RUN
+              运行
             </button>
             <button 
               @click="runInNew(session.tag)"
               class="px-2 py-1 bg-lab-border text-gray-300 text-[10px] font-bold rounded hover:bg-lab-active transition"
             >
-              NEW
+              新窗口
             </button>
             <button 
               @click="handleDelete(session.tag)"
               class="px-2 py-1 text-[10px] font-bold rounded transition-all duration-200"
               :class="confirmingTag === session.tag ? 'bg-red-600 text-white animate-pulse' : 'bg-red-900/30 text-red-400 hover:bg-red-900/50'"
             >
-              {{ confirmingTag === session.tag ? 'SURE?' : 'DEL' }}
+              {{ confirmingTag === session.tag ? '确定?' : '删除' }}
             </button>
           </div>
         </div>
@@ -61,7 +61,7 @@
         <div class="overflow-hidden pointer-events-none">
           <!-- Collapsed View -->
           <div v-if="expandedTag !== session.tag" class="flex items-center gap-2 py-2 px-2 bg-lab-bg/50 rounded-lg">
-            <span class="text-[8px] font-black text-lab-primary uppercase tracking-tighter bg-lab-primary/10 px-1 rounded flex-shrink-0">Last</span>
+            <span class="text-[8px] font-black text-lab-primary uppercase tracking-tighter bg-lab-primary/10 px-1 rounded flex-shrink-0">最近</span>
             <p class="text-[11px] text-lab-text-dim truncate">{{ session.preview[session.preview.length-1] || '...' }}</p>
           </div>
 
