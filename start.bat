@@ -1,0 +1,6 @@
+@echo off
+echo Building Frontend...
+call npm run build
+echo Starting Server...
+start "" "http://localhost:3001"
+node server/index.js
