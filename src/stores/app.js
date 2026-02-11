@@ -6,6 +6,7 @@ export const useAppStore = defineStore('app', () => {
     const socket = io('http://localhost:3001');
     const projectPath = ref(localStorage.getItem('gemini_path') || '');
     const checkpoints = ref([]);
+    const todos = ref([]);
     
     // Check if this is a "New Window" pop-out
     const params = new URLSearchParams(window.location.search);
@@ -26,11 +27,15 @@ export const useAppStore = defineStore('app', () => {
     }
 
     socket.on('project-info', ({ path }) => {
-        if (!projectPath.value) projectPath.value = path;
+        projectPath.value = path;
     });
 
     socket.on('checkpoint-list', (list) => {
         checkpoints.value = list;
+    });
+
+    socket.on('todo-list', (list) => {
+        todos.value = list;
     });
 
     socket.on('terminal-cwd', ({ id, path }) => {
@@ -72,6 +77,26 @@ export const useAppStore = defineStore('app', () => {
         saveState();
     }
 
+    function updateTodos(newList) {
+        todos.value = newList;
+        socket.emit('update-todos', newList);
+    }
+
+    function sendTodoToTerminal(text, mode = 'inject') {
+        if (!activeTabId.value) createTab();
+        
+        if (mode === 'inject') {
+            // 清空当前行 (Ctrl+U) 并注入
+            socket.emit('input', { id: activeTabId.value, data: '\x15' }); 
+            setTimeout(() => {
+                socket.emit('input', { id: activeTabId.value, data: text });
+            }, 50);
+        } else {
+            // 直接追加
+            socket.emit('input', { id: activeTabId.value, data: text });
+        }
+    }
+
     function smartRun(tag, name) {
         if (!activeTabId.value) createTab();
         const currentTab = terminals.value.find(t => t.id === activeTabId.value);
@@ -103,8 +128,8 @@ export const useAppStore = defineStore('app', () => {
     }
 
     return {
-        socket, projectPath, checkpoints, terminals, activeTabId, 
+        socket, projectPath, checkpoints, todos, terminals, activeTabId, 
         terminalPaths, xtermInstances,
-        createTab, closeTab, saveState, smartRun
+        createTab, closeTab, saveState, smartRun, updateTodos, sendTodoToTerminal
     };
 });
