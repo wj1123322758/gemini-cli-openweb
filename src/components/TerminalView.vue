@@ -62,7 +62,6 @@ const basicCmds = [
 const sessionCmds = [
   { label: 'Summary', value: '/compress', title: '压缩并总结上下文' },
   { label: 'Rewind', value: '/rewind', title: '回退消息' },
-  { label: 'Ctx', value: '/context', title: '查看当前上下文内容' },
   { label: 'List', value: '/chat list', title: '列出保存的会话' },
 ]
 
@@ -76,11 +75,12 @@ const systemCmds = [
 const toolCmds = [
   { label: 'MCP', value: '/mcp list', title: '列出 MCP 服务器' },
   { label: 'Mem', value: '/memory show', title: '显示记忆内容' },
-  { label: 'YOLO', value: '/yolo', title: '切换自动批准模式' },
+  { label: 'YOLO', value: '\x19', title: '切换自动批准模式 (Ctrl+Y)' },
 ]
 
 const sendCommand = (cmd) => {
-  if (cmd === '!') {
+  // \x19 是 Ctrl+Y 的控制码，直接发送，不加回车
+  if (cmd === '!' || cmd === '\x19') {
     store.socket.emit('input', { id: props.id, data: cmd })
   } else {
     // 很多终端模拟器对 \r (Carriage Return) 反应更灵敏
@@ -93,7 +93,17 @@ const sendCommand = (cmd) => {
   term.focus()
 }
 
+const handleKeyDown = (e) => {
+  // 保持全局监听仅用于非焦点状态（可选），或者如果已有 xterm 处理器则可以精简
+  if (!props.isActive) return
+  if (e.ctrlKey && e.code === 'KeyY') {
+    e.preventDefault()
+    sendCommand('\x19')
+  }
+}
+
 onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
   term = new Terminal({
     cursorBlink: true,
     fontSize: 14,
@@ -123,6 +133,15 @@ onMounted(() => {
   store.xtermInstances.set(props.id, term)
   term.onData(data => store.socket.emit('input', { id: props.id, data }))
 
+  term.attachCustomKeyEventHandler((e) => {
+    if (e.type === 'keydown' && e.ctrlKey && e.code === 'KeyY') {
+      e.preventDefault()
+      sendCommand('\x19')
+      return false // 阻止事件进一步传播给终端
+    }
+    return true
+  })
+
   const outputListener = ({ id, data }) => {
     if (id === props.id) term.write(data)
   }
@@ -147,6 +166,7 @@ onMounted(() => {
   })
 
   onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown)
     store.socket.off('output', outputListener)
     window.removeEventListener('resize', handleResize)
     store.xtermInstances.delete(props.id)

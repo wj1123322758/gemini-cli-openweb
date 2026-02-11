@@ -132,14 +132,23 @@ io.on('connection', (socket) => {
 
     socket.on('input', ({ id, data }) => {
         const term = terminals.get(id);
-        if (term) term.write(data);
+        if (term && term.write) {
+            try {
+                term.write(data);
+            } catch (e) {
+                console.error(`Error writing to terminal ${id}:`, e);
+            }
+        }
     });
 
     socket.on('resize', ({ id, cols, rows }) => {
         const term = terminals.get(id);
-        if (term) term.resize(cols, rows);
+        if (term && term.resize) {
+            try {
+                term.resize(cols, rows);
+            } catch (e) {}
+        }
     });
-
     
     socket.on('delete-checkpoint', (tag) => {
         const projectDir = path.join(os.homedir(), '.gemini', 'tmp', currentProjectHash);
@@ -163,3 +172,12 @@ io.on('connection', (socket) => {
 
 const PORT = 3001;
 server.listen(PORT, () => console.log(`Server sync-ready at http://localhost:${PORT}`));
+
+// --- 进程保护：防止意外崩溃导致服务中断 ---
+process.on('uncaughtException', (err) => {
+    console.error('CRITICAL: Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
