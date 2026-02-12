@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { io } from 'socket.io-client'
-import { ref, computed, shallowRef } from 'vue'
+import { ref, shallowRef } from 'vue'
+import { checkIsInGemini } from '../services/terminalLogic'
 
 export const useAppStore = defineStore('app', () => {
     const socket = io('http://localhost:3001');
@@ -8,11 +9,8 @@ export const useAppStore = defineStore('app', () => {
     const checkpoints = ref([]);
     const todos = ref([]);
     
-    // Check if this is a "New Window" pop-out
     const params = new URLSearchParams(window.location.search);
     const isPopOut = params.has('tag');
-    
-    // If pop-out, start with empty tabs to ensure independence
     const savedTabs = isPopOut ? [] : JSON.parse(sessionStorage.getItem('win_tabs') || '[]');
     
     const terminals = ref(savedTabs);
@@ -26,20 +24,16 @@ export const useAppStore = defineStore('app', () => {
         sessionStorage.setItem('win_active', activeTabId.value);
     }
 
+    // --- Socket Listeners ---
     socket.on('project-info', ({ path }) => {
         projectPath.value = path;
+        localStorage.setItem('gemini_path', path);
     });
-
-    socket.on('checkpoint-list', (list) => {
-        checkpoints.value = list;
-    });
-
-    socket.on('todo-list', (list) => {
-        todos.value = list;
-    });
-
+    socket.on('checkpoint-list', (list) => checkpoints.value = list);
+    socket.on('todo-list', (list) => todos.value = list);
     socket.on('terminal-cwd', ({ id, path }) => {
         terminalPaths.value[id] = path;
+        // 只有当前活跃标签页的路径变更才同步全局项目路径
         if (activeTabId.value === id) {
             socket.emit('set-project-path', path);
         }
@@ -47,8 +41,7 @@ export const useAppStore = defineStore('app', () => {
 
     function createTab(title = null, id = null, initialCommand = null) {
         const termId = id || 'term-' + Date.now();
-        const existing = terminals.value.find(t => t.id === termId);
-        if (existing) return termId;
+        if (terminals.value.find(t => t.id === termId)) return termId;
 
         terminals.value.push({
             id: termId,
@@ -82,18 +75,15 @@ export const useAppStore = defineStore('app', () => {
         socket.emit('update-todos', newList);
     }
 
-    function sendTodoToTerminal(text, mode = 'inject') {
+    function sendToTerminal(data, mode = 'append') {
         if (!activeTabId.value) createTab();
-        
         if (mode === 'inject') {
-            // 清空当前行 (Ctrl+U) 并注入
-            socket.emit('input', { id: activeTabId.value, data: '\x15' }); 
+            socket.emit('input', { id: activeTabId.value, data: '\x15' }); // Ctrl+U
             setTimeout(() => {
-                socket.emit('input', { id: activeTabId.value, data: text });
+                socket.emit('input', { id: activeTabId.value, data: data });
             }, 50);
         } else {
-            // 直接追加
-            socket.emit('input', { id: activeTabId.value, data: text });
+            socket.emit('input', { id: activeTabId.value, data: data });
         }
     }
 
@@ -104,20 +94,9 @@ export const useAppStore = defineStore('app', () => {
         saveState();
 
         const term = xtermInstances.value.get(activeTabId.value);
-        let isInGemini = false;
+        const isInGemini = checkIsInGemini(term);
 
-        if (term) {
-            const buffer = term.buffer.active;
-            const lastLineIdx = buffer.cursorY + buffer.baseY;
-            for (let i = lastLineIdx; i >= Math.max(0, lastLineIdx - 10); i--) {
-                const line = buffer.getLine(i)?.translateToString().trim() || "";
-                // Fixed backslash escaping for PowerShell prompt detection
-                if (line.includes('PS ') && line.includes(':\\')) { isInGemini = false; break; }
-                if (line.startsWith('>') || line.includes('gemini>')) { isInGemini = true; break; }
-            }
-        }
-
-        socket.emit('input', { id: activeTabId.value, data: '\x03' }); 
+        socket.emit('input', { id: activeTabId.value, data: '\x03' }); // Ctrl+C
         setTimeout(() => {
             const cmd = isInGemini ? `/chat resume "${tag}"` : `gemini /chat resume "${tag}"`;
             socket.emit('input', { id: activeTabId.value, data: cmd });
@@ -130,6 +109,6 @@ export const useAppStore = defineStore('app', () => {
     return {
         socket, projectPath, checkpoints, todos, terminals, activeTabId, 
         terminalPaths, xtermInstances,
-        createTab, closeTab, saveState, smartRun, updateTodos, sendTodoToTerminal
+        createTab, closeTab, saveState, smartRun, updateTodos, sendToTerminal
     };
 });

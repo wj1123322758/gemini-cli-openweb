@@ -80,12 +80,9 @@ const toolCmds = [
 ]
 
 const sendCommand = (cmd) => {
-  // \x19 是 Ctrl+Y 的控制码，直接发送，不加回车
   if (cmd === '!' || cmd === '\x19') {
     store.socket.emit('input', { id: props.id, data: cmd })
   } else {
-    // 很多终端模拟器对 \r (Carriage Return) 反应更灵敏
-    // 模拟快速键入：先发送字符，再发送回车
     store.socket.emit('input', { id: props.id, data: cmd })
     setTimeout(() => {
       store.socket.emit('input', { id: props.id, data: '\r' })
@@ -95,7 +92,6 @@ const sendCommand = (cmd) => {
 }
 
 const handleKeyDown = (e) => {
-  // 保持全局监听仅用于非焦点状态（可选），或者如果已有 xterm 处理器则可以精简
   if (!props.isActive) return
   if (e.ctrlKey && e.code === 'KeyY') {
     e.preventDefault()
@@ -138,7 +134,7 @@ onMounted(() => {
     if (e.type === 'keydown' && e.ctrlKey && e.code === 'KeyY') {
       e.preventDefault()
       sendCommand('\x19')
-      return false // 阻止事件进一步传播给终端
+      return false
     }
     return true
   })
@@ -152,7 +148,6 @@ onMounted(() => {
 
   if (props.initialCommand) {
     setTimeout(() => {
-      // 启动指令也改为先发内容再发 \r
       store.socket.emit('input', { id: props.id, data: props.initialCommand })
       setTimeout(() => {
         store.socket.emit('input', { id: props.id, data: '\r' })
@@ -197,18 +192,7 @@ watch(() => props.isActive, (active) => {
   transition: all 0.3s ease;
   background: rgba(15, 17, 21, 0.4);
 }
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-:deep(.xterm-helper-textarea) {
-  position: absolute !important;
-  opacity: 0 !important;
-  z-index: -1 !important;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+:deep(.xterm-helper-textarea) { position: absolute !important; opacity: 0 !important; z-index: -1 !important; }
 </style>

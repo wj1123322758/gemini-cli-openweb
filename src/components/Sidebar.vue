@@ -156,6 +156,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../stores/app';
+import { formatTodoContent } from '../services/terminalLogic';
 
 const store = useAppStore();
 const activeTab = ref('todos');
@@ -177,7 +178,6 @@ const tempEditImage = ref(null);
 const vFocus = { mounted: (el) => el.focus() };
 
 const pendingTodosCount = computed(() => store.todos.filter(t => t.status !== 'done').length);
-const todosByStatus = (status) => store.todos.filter(t => t.status === status);
 
 const toggleExpand = (tag) => { expandedTag.value = expandedTag.value === tag ? null : tag; };
 
@@ -228,9 +228,8 @@ const setStatus = (todo, status) => {
 };
 
 const sendTodo = (todo, mode) => {
-  let content = todo.text;
-  if (todo.imageUrl) content += `\n(REF_IMG: @${todo.imageUrl.replace('/todo-images/', 'todo-images/')})`;
-  store.sendTodoToTerminal(content, mode);
+  const content = formatTodoContent(todo);
+  store.sendToTerminal(content, mode);
   if (todo.status === 'todo') setStatus(todo, 'doing');
 };
 
