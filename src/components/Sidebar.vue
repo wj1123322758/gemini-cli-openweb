@@ -195,12 +195,24 @@ const vFocus = { mounted: (el) => el.focus() };
 
 const pendingTodosCount = computed(() => store.todos.filter(t => t.status !== 'done').length);
 
-// 新增：根据 filterMode 过滤后的任务列表
+// 新增：根据 filterMode 过滤并排序后的任务列表
 const filteredTodos = computed(() => {
-  if (filterMode.value === '全部') return store.todos;
-  if (filterMode.value === '已完成') return store.todos.filter(t => t.status === 'done');
-  // 否则按分类筛选（且只显示未完成的）
-  return store.todos.filter(t => t.category === filterMode.value && t.status !== 'done');
+  let list = [];
+  if (filterMode.value === '全部') {
+    list = [...store.todos];
+  } else if (filterMode.value === '已完成') {
+    list = store.todos.filter(t => t.status === 'done');
+  } else {
+    // 分类筛选：显示该分类下的所有任务（包含已完成）
+    list = store.todos.filter(t => t.category === filterMode.value);
+  }
+
+  // 统一排序：未完成的在前，已完成的在后
+  return list.sort((a, b) => {
+    if (a.status === 'done' && b.status !== 'done') return 1;
+    if (a.status !== 'done' && b.status === 'done') return -1;
+    return 0; // 保持原有的相对顺序（通常是创建时间）
+  });
 });
 
 const toggleExpand = (tag) => { expandedTag.value = expandedTag.value === tag ? null : tag; };
