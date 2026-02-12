@@ -1,111 +1,87 @@
 <template>
   <div v-show="isActive" class="absolute inset-0 flex flex-col overflow-hidden terminal-wrapper z-20">
-    <!-- Shortcut Toolbar -->
-    <div class="flex items-center gap-1 p-1.5 bg-lab-surface/40 backdrop-blur-md border-b border-lab-border overflow-x-auto no-scrollbar shrink-0">
-      <div class="flex items-center gap-1 pr-2 border-r border-lab-border/30">
-        <button v-for="cmd in basicCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-primary hover:bg-lab-primary/10 rounded transition-all whitespace-nowrap"
-          :title="cmd.title">
-          {{ cmd.label }}
-        </button>
-      </div>
-      
-      <div class="flex items-center gap-1 px-2 border-r border-lab-border/30">
-        <button v-for="cmd in sessionCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-accent hover:bg-lab-accent/10 rounded transition-all whitespace-nowrap"
-          :title="cmd.title">
-          {{ cmd.label }}
-        </button>
-      </div>
-
-      <div class="flex items-center gap-1 px-2 border-r border-lab-border/30">
-        <button v-for="cmd in systemCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-yellow-500 hover:bg-yellow-500/10 rounded transition-all whitespace-nowrap"
-          :title="cmd.title">
-          {{ cmd.label }}
-        </button>
-      </div>
-
-      <div class="flex items-center gap-1 pl-2">
-        <button v-for="cmd in toolCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-green-500 hover:bg-green-500/10 rounded transition-all whitespace-nowrap"
-          :title="cmd.title">
-          {{ cmd.label }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Terminal Container -->
-    <div ref="terminalContainer" class="flex-1 w-full overflow-hidden"></div>
+    <ShortcutToolbar @command="sendCommand" />
+    <div ref="terminalContainer" class="flex-1 w-full overflow-hidden" />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
-import { Terminal } from 'xterm'
-import { FitAddon } from 'xterm-addon-fit'
-import 'xterm/css/xterm.css'
-import { useAppStore } from '../stores/app'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue';
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
+import { useTerminalStore } from '../stores';
+import { socketService } from '../services/socketService.js';
+import { CONFIG } from '../config/index.js';
+import ShortcutToolbar from './terminal/ShortcutToolbar.vue';
 
-const props = defineProps(['id', 'isActive', 'initialCommand'])
-const store = useAppStore()
-const terminalContainer = ref(null)
-let term = null
-let fitAddon = null
+const props = defineProps({
+  id: { type: String, required: true },
+  isActive: { type: Boolean, default: false },
+  initialCommand: { type: String, default: null }
+});
 
-const basicCmds = [
-  { label: '启动', value: 'gemini', title: '运行 Gemini CLI' },
-  { label: 'Shell', value: '!', title: '切换 Shell 模式' },
-  { label: '清屏', value: '/clear', title: '清空终端和上下文' },
-  { label: '帮助', value: '/help', title: '显示帮助信息' },
-]
+const terminalStore = useTerminalStore();
+const terminalContainer = ref(null);
 
-const sessionCmds = [
-  { label: '总结', value: '/compress', title: '压缩并总结当前上下文' },
-  { label: '回退', value: '/rewind', title: '浏览并回退消息' },
-  { label: '列表', value: '/chat list', title: '列出所有保存的会话' },
-]
-
-const systemCmds = [
-  { label: '模型', value: '/model', title: '切换 AI 模型' },
-  { label: '主题', value: '/theme', title: '切换界面主题' },
-  { label: '登录', value: '/auth login', title: '账号登录与认证' },
-  { label: 'Vim', value: '/vim', title: '开启/关闭 Vim 模式' },
-]
-
-const toolCmds = [
-  { label: 'MCP', value: '/mcp list', title: '查看 MCP 服务器列表' },
-  { label: '记忆', value: '/memory show', title: '显示当前 AI 记忆内容' },
-  { label: 'YOLO', value: '\x19', title: '切换自动批准模式 (Ctrl+Y)' },
-]
-
-const sendCommand = (cmd) => {
-  // \x19 是 Ctrl+Y 的控制码，直接发送，不加回车
-  if (cmd === '!' || cmd === '\x19') {
-    store.socket.emit('input', { id: props.id, data: cmd })
-  } else {
-    // 很多终端模拟器对 \r (Carriage Return) 反应更灵敏
-    // 模拟快速键入：先发送字符，再发送回车
-    store.socket.emit('input', { id: props.id, data: cmd })
-    setTimeout(() => {
-      store.socket.emit('input', { id: props.id, data: '\r' })
-    }, 20)
-  }
-  term.focus()
-}
-
-const handleKeyDown = (e) => {
-  // 保持全局监听仅用于非焦点状态（可选），或者如果已有 xterm 处理器则可以精简
-  if (!props.isActive) return
-  if (e.ctrlKey && e.code === 'KeyY') {
-    e.preventDefault()
-    sendCommand('\x19')
-  }
-}
+let term = null;
+let fitAddon = null;
+let outputListener = null;
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown)
-  term = new Terminal({
+  initTerminal();
+  window.addEventListener('resize', handleResize);
+});
+
+onBeforeUnmount(() => {
+  cleanup();
+  window.removeEventListener('resize', handleResize);
+});
+
+function initTerminal() {
+  term = createXterm();
+  fitAddon = new FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(terminalContainer.value);
+  
+  terminalStore.registerXterm(props.id, term);
+  
+  // Setup data handler
+  term.onData(data => {
+    terminalStore.sendInput(props.id, data);
+  });
+  
+  // Setup custom key handler
+  term.attachCustomKeyEventHandler(handleKeyEvent);
+  
+  // Setup output listener
+  outputListener = ({ id, data }) => {
+    if (id === props.id) term.write(data);
+  };
+  socketService.on('output', outputListener);
+  
+  // Create terminal on server
+  socketService.emit('create-terminal', {
+    id: props.id,
+    cols: term.cols,
+    rows: term.rows
+  });
+  
+  // Send initial command if provided
+  if (props.initialCommand) {
+    setTimeout(() => {
+      terminalStore.sendCommand(props.id, props.initialCommand);
+    }, CONFIG.TERMINAL.INITIAL_DELAY);
+  }
+  
+  nextTick(() => {
+    handleResize();
+    term.focus();
+  });
+}
+
+function createXterm() {
+  return new Terminal({
     cursorBlink: true,
     fontSize: 14,
     lineHeight: 1.2,
@@ -125,85 +101,61 @@ onMounted(() => {
       cyan: '#9aedfe',
       white: '#f1f1f1'
     }
-  })
+  });
+}
 
-  fitAddon = new FitAddon()
-  term.loadAddon(fitAddon)
-  term.open(terminalContainer.value)
+function handleKeyEvent(e) {
+  if (e.type === 'keydown' && e.ctrlKey && e.code === 'KeyY') {
+    e.preventDefault();
+    sendCommand('\x19');
+    return false;
+  }
+  return true;
+}
+
+function sendCommand(cmd) {
+  // \x19 is Ctrl+Y, \x03 is Ctrl+C - send directly without return
+  const noReturnCommands = ['!', '\x19', '\x03'];
+  const addReturn = !noReturnCommands.includes(cmd);
   
-  store.xtermInstances.set(props.id, term)
-  term.onData(data => store.socket.emit('input', { id: props.id, data }))
+  terminalStore.sendCommand(props.id, cmd, addReturn);
+  term.focus();
+}
 
-  term.attachCustomKeyEventHandler((e) => {
-    if (e.type === 'keydown' && e.ctrlKey && e.code === 'KeyY') {
-      e.preventDefault()
-      sendCommand('\x19')
-      return false // 阻止事件进一步传播给终端
-    }
-    return true
-  })
-
-  const outputListener = ({ id, data }) => {
-    if (id === props.id) term.write(data)
-  }
-  store.socket.on('output', outputListener)
-
-  store.socket.emit('create-terminal', { id: props.id, cols: term.cols, rows: term.rows })
-
-  if (props.initialCommand) {
-    setTimeout(() => {
-      // 启动指令也改为先发内容再发 \r
-      store.socket.emit('input', { id: props.id, data: props.initialCommand })
-      setTimeout(() => {
-        store.socket.emit('input', { id: props.id, data: '\r' })
-      }, 50)
-    }, 800)
-  }
-
-  window.addEventListener('resize', handleResize)
-  nextTick(() => {
-    handleResize()
-    term.focus()
-  })
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown)
-    store.socket.off('output', outputListener)
-    window.removeEventListener('resize', handleResize)
-    store.xtermInstances.delete(props.id)
-    term.dispose()
-  })
-})
-
-const handleResize = () => {
+function handleResize() {
   if (fitAddon && props.isActive && terminalContainer.value) {
-    fitAddon.fit()
-    store.socket.emit('resize', { id: props.id, cols: term.cols, rows: term.rows })
+    fitAddon.fit();
+    socketService.emit('resize', {
+      id: props.id,
+      cols: term.cols,
+      rows: term.rows
+    });
   }
 }
 
+function cleanup() {
+  if (outputListener) {
+    socketService.off('output', outputListener);
+  }
+  terminalStore.unregisterXterm(props.id);
+  term?.dispose();
+}
+
+// Watch for activation changes
 watch(() => props.isActive, (active) => {
   if (active) {
     nextTick(() => {
-      handleResize()
-      term.focus()
-    })
+      handleResize();
+      term?.focus();
+    });
   }
-})
+});
 </script>
 
 <style scoped>
 .terminal-wrapper {
   transition: all 0.3s ease;
   background: rgba(15, 17, 21, 0.4);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 :deep(.xterm-helper-textarea) {
