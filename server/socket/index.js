@@ -1,7 +1,9 @@
 import { getPossibleHashes, normalizePath } from '../utils/pathHelper.js';
+import os from 'os';
 
 export function registerHandlers(io, ptyService, todoService, checkpointService) {
-    let currentProjectPath = process.cwd();
+    // 核心改进：初始路径设为用户家目录，防止误改源码
+    let currentProjectPath = os.homedir();
 
     const broadcastProjectState = (path) => {
         const hashes = getPossibleHashes(path);
@@ -14,7 +16,7 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
     };
 
     io.on('connection', (socket) => {
-        // Initial sync for new connection
+        // 初始连接同步
         const hashes = getPossibleHashes(currentProjectPath);
         socket.emit('project-info', { path: currentProjectPath, hashes });
         socket.emit('checkpoint-list', checkpointService.getCheckpoints(currentProjectPath));
@@ -51,6 +53,7 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
         socket.on('create-terminal', ({ id, cols, rows }) => {
             socket.join(id);
             if (!ptyService.terminals.has(id)) {
+                // 终端启动在当前选定的项目路径下
                 ptyService.createTerminal(id, { cols, rows, cwd: currentProjectPath });
             } else {
                 const log = ptyService.getLog(id);

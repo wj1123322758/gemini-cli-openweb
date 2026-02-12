@@ -7,7 +7,6 @@
           GEMINI <span class="font-light text-gray-500">| STATION</span>
         </h1>
         
-        <!-- Smart Path: Elegant & Interactive -->
         <div 
           @click="changeProjectPath"
           class="flex items-center gap-2 px-3 py-1.5 bg-lab-surface/50 border border-lab-border rounded-full cursor-pointer hover:border-lab-primary transition-all group overflow-hidden max-w-xl"
@@ -29,9 +28,8 @@
       <!-- Sidebar -->
       <Sidebar class="w-80 glass-effect" />
       
-      <!-- Right Panel: Tabs & Terminal -->
+      <!-- Right Panel -->
       <div class="flex-1 flex flex-col min-w-0 bg-transparent">
-        <!-- Tabs Area -->
         <div class="h-11 flex items-end px-4 gap-1.5 bg-transparent border-b border-lab-border">
           <div 
             v-for="tab in store.terminals" 
@@ -45,12 +43,10 @@
               @click.stop="store.closeTab(tab.id)" 
               class="opacity-0 group-hover:opacity-100 text-xs text-gray-500 hover:text-red-400 p-0.5 rounded"
             >×</span>
-            <!-- Active Indicator Line -->
             <div v-if="store.activeTabId === tab.id" class="absolute bottom-0 left-2 right-2 h-0.5 bg-lab-primary rounded-full"></div>
           </div>
         </div>
 
-        <!-- Terminal Stack -->
         <div class="flex-1 relative">
           <TerminalView 
             v-for="tab in store.terminals" 
@@ -81,10 +77,17 @@ onMounted(() => {
   const autoTag = urlParams.get('tag');
   const targetPath = urlParams.get('path');
 
+  // 如果 URL 显式提供了路径（如点击独立窗口打开），则立即通知后端切换
+  if (targetPath) {
+    store.socket.emit('set-project-path', targetPath);
+  }
+
   if (autoTag) {
     let bootCmd = `gemini /chat resume "${autoTag}"`;
+    // 如果有路径，先 cd 过去
     if (targetPath) bootCmd = `cd "${targetPath}"; ${bootCmd}`;
     store.createTab(autoTag, 'pop-' + Date.now(), bootCmd);
+    // 清理 URL 保持整洁
     window.history.replaceState({}, '', '/');
   } else if (store.terminals.length === 0) {
     store.createTab();
