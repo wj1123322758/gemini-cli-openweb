@@ -7,7 +7,7 @@
     <div class="flex items-center gap-1 p-1.5 bg-lab-surface/60 backdrop-blur-xl border-t border-lab-border overflow-x-auto no-scrollbar shrink-0 shadow-2xl">
       <div class="flex items-center gap-1 pr-2 border-r border-lab-border/30">
         <button v-for="cmd in basicCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-primary hover:bg-lab-primary/10 rounded transition-all whitespace-nowrap"
+          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim/80 hover:text-lab-primary hover:bg-lab-primary/10 rounded transition-all whitespace-nowrap"
           :title="cmd.title">
           {{ cmd.label }}
         </button>
@@ -21,7 +21,7 @@
           存档
         </button>
         <button v-for="cmd in sessionCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-accent hover:bg-lab-accent/10 rounded transition-all whitespace-nowrap"
+          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim/80 hover:text-lab-accent hover:bg-lab-accent/10 rounded transition-all whitespace-nowrap"
           :title="cmd.title">
           {{ cmd.label }}
         </button>
@@ -29,7 +29,7 @@
 
       <div class="flex items-center gap-1 px-2 border-r border-lab-border/30">
         <button v-for="cmd in systemCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-yellow-500 hover:bg-yellow-500/10 rounded transition-all whitespace-nowrap"
+          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim/80 hover:text-yellow-500 hover:bg-yellow-500/10 rounded transition-all whitespace-nowrap"
           :title="cmd.title">
           {{ cmd.label }}
         </button>
@@ -37,7 +37,7 @@
 
       <div class="flex items-center gap-1 pl-2">
         <button v-for="cmd in toolCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
-          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-green-500 hover:bg-green-500/10 rounded transition-all whitespace-nowrap"
+          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim/80 hover:text-green-500 hover:bg-green-500/10 rounded transition-all whitespace-nowrap"
           :title="cmd.title">
           {{ cmd.label }}
         </button>

@@ -4,15 +4,15 @@
     <div class="flex p-1.5 bg-black/20 border-b border-lab-border">
       <button 
         @click="activeTab = 'checkpoints'"
-        class="flex-1 py-2 text-[11px] font-bold tracking-widest transition-all rounded-md"
-        :class="activeTab === 'checkpoints' ? 'bg-lab-surface text-lab-primary shadow-sm border border-lab-primary/20' : 'text-lab-text-dim/40 hover:text-lab-text-dim'"
+        class="flex-1 py-2 text-[11px] font-bold tracking-widest rounded-md outline-none"
+        :class="activeTab === 'checkpoints' ? 'bg-lab-surface text-lab-primary border border-lab-primary/20' : 'text-lab-text-dim/70 hover:text-lab-text-dim'"
       >
         会话存档
       </button>
       <button 
         @click="activeTab = 'todos'"
-        class="flex-1 py-2 text-[11px] font-bold tracking-widest transition-all rounded-md relative"
-        :class="activeTab === 'todos' ? 'bg-lab-surface text-lab-accent shadow-sm border border-lab-accent/20' : 'text-lab-text-dim/40 hover:text-lab-text-dim'"
+        class="flex-1 py-2 text-[11px] font-bold tracking-widest rounded-md relative outline-none"
+        :class="activeTab === 'todos' ? 'bg-lab-surface text-lab-accent border border-lab-accent/20' : 'text-lab-text-dim/70 hover:text-lab-text-dim'"
       >
         任务清单
         <span v-if="pendingTodosCount > 0" class="absolute top-1 right-2 w-1.5 h-1.5 bg-lab-accent rounded-full animate-pulse shadow-[0_0_5px_#ff6ac1]"></span>
@@ -20,7 +20,7 @@
     </div>
 
     <!-- Archive View -->
-    <div v-if="activeTab === 'checkpoints'" class="flex flex-col h-full overflow-hidden">
+    <div v-show="activeTab === 'checkpoints'" class="flex flex-col h-full overflow-hidden">
       <div class="px-6 py-4 flex-shrink-0 flex items-center justify-between border-b border-lab-border/20">
         <h2 class="text-[10px] font-bold uppercase tracking-widest text-lab-text-dim/60">历史记录</h2>
         <button @click="store.socket.emit('get-checkpoints')" class="p-1 hover:text-lab-primary transition-all hover:rotate-90">
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Missions View -->
-    <div v-else class="flex flex-col h-full overflow-hidden">
+    <div v-show="activeTab === 'todos'" class="flex flex-col h-full overflow-hidden">
       <!-- Input Console -->
       <div class="p-4 bg-lab-surface/20 border-b border-lab-border shadow-lg">
         <div class="relative group">
@@ -75,18 +75,18 @@
             <!-- 全部筛选 -->
             <button @click="filterMode = '全部'"
               class="px-2 py-1 text-[9px] font-bold rounded-full transition-all border"
-              :class="filterMode === '全部' ? 'bg-gray-100 text-black border-white' : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+              :class="filterMode === '全部' ? 'bg-gray-100 text-black border-white' : 'border-lab-border/40 text-lab-text-dim/70 hover:text-lab-text-dim'"
             >全部</button>
 
             <button v-for="cat in categories" :key="cat" @click="selectedCategory = cat; filterMode = cat"
               class="px-2.5 py-1 text-[9px] font-bold rounded-full transition-all border"
-              :class="filterMode === cat ? categoryClass(cat) : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+              :class="filterMode === cat ? categoryClass(cat) : 'border-lab-border/40 text-lab-text-dim/70 hover:text-lab-text-dim'"
             >{{ cat }}</button>
 
             <!-- 已完成筛选 -->
             <button @click="filterMode = '已完成'"
               class="px-2 py-1 text-[9px] font-bold rounded-full transition-all border"
-              :class="filterMode === '已完成' ? 'bg-green-500 text-white border-green-400' : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+              :class="filterMode === '已完成' ? 'bg-green-500 text-white border-green-400' : 'border-lab-border/40 text-lab-text-dim/70 hover:text-lab-text-dim'"
             >已完成</button>
           </div>
           <button @click="addTodo" :disabled="!newTodoText.trim() && !newTodoImageUrl"
