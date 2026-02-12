@@ -19,7 +19,7 @@
     "id": "todo-1770791042102",
     "text": "你的终端目录，一开始时，能不能指向一个公共区域？不然其他用户一开始，就是修改的这个项目的文件了。这个你有什么好的建议吗？要考虑到windows 和linux 和mac的用户",
     "imageUrl": null,
-    "status": "done",
+    "status": "doing",
     "category": "需求",
     "createdAt": "2026-02-11T06:24:02.102Z"
   },

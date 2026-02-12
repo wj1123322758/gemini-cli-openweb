@@ -1,7 +1,10 @@
 <template>
   <div v-show="isActive" class="absolute inset-0 flex flex-col overflow-hidden terminal-wrapper z-20">
-    <!-- Shortcut Toolbar -->
-    <div class="flex items-center gap-1 p-1.5 bg-lab-surface/40 backdrop-blur-md border-b border-lab-border overflow-x-auto no-scrollbar shrink-0">
+    <!-- Terminal Container -->
+    <div ref="terminalContainer" class="flex-1 w-full overflow-hidden bg-black/20"></div>
+
+    <!-- Shortcut Toolbar (Fixed at Bottom) -->
+    <div class="flex items-center gap-1 p-1.5 bg-lab-surface/60 backdrop-blur-xl border-t border-lab-border overflow-x-auto no-scrollbar shrink-0 shadow-2xl">
       <div class="flex items-center gap-1 pr-2 border-r border-lab-border/30">
         <button v-for="cmd in basicCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
           class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-primary hover:bg-lab-primary/10 rounded transition-all whitespace-nowrap"
@@ -11,6 +14,12 @@
       </div>
       
       <div class="flex items-center gap-1 px-2 border-r border-lab-border/30">
+        <!-- Special handle for Archive -->
+        <button @click="handleArchive" 
+          class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-accent hover:bg-lab-accent/10 rounded transition-all whitespace-nowrap"
+          title="快速存档当前会话">
+          存档
+        </button>
         <button v-for="cmd in sessionCmds" :key="cmd.label" @click="sendCommand(cmd.value)" 
           class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-lab-text-dim hover:text-lab-accent hover:bg-lab-accent/10 rounded transition-all whitespace-nowrap"
           :title="cmd.title">
@@ -34,9 +43,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Terminal Container -->
-    <div ref="terminalContainer" class="flex-1 w-full overflow-hidden"></div>
   </div>
 </template>
 
@@ -80,15 +86,43 @@ const toolCmds = [
 ]
 
 const sendCommand = (cmd) => {
+  // Shell 和 YOLO 逻辑：无前置，无回车，直接发送
   if (cmd === '!' || cmd === '\x19') {
     store.socket.emit('input', { id: props.id, data: cmd })
-  } else {
+    term.focus()
+    return
+  }
+
+  // 区分前置字符：只有启动 (gemini) 用 Ctrl+C, 其余用 Ctrl+U
+  const prefix = (cmd === 'gemini') ? '\x03' : '\x15'
+  store.socket.emit('input', { id: props.id, data: prefix })
+  
+  setTimeout(() => {
     store.socket.emit('input', { id: props.id, data: cmd })
     setTimeout(() => {
       store.socket.emit('input', { id: props.id, data: '\r' })
-    }, 20)
-  }
+    }, 1000)
+  }, 200)
+  
   term.focus()
+}
+
+const handleArchive = () => {
+  const tag = prompt("请输入存档标签:");
+  if (tag && tag.trim()) {
+    const fullCmd = `/chat save ${tag.trim()}`
+    // 存档属于普通指令，使用 Ctrl+U 前置
+    store.socket.emit('input', { id: props.id, data: '\x15' })
+    
+    setTimeout(() => {
+      store.socket.emit('input', { id: props.id, data: fullCmd })
+      setTimeout(() => {
+        store.socket.emit('input', { id: props.id, data: '\r' })
+      }, 1000)
+    }, 200)
+    
+    term.focus()
+  }
 }
 
 const handleKeyDown = (e) => {
