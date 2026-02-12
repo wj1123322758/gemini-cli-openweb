@@ -71,11 +71,23 @@
         </div>
 
         <div class="flex items-center justify-between mt-3">
-          <div class="flex gap-1">
-            <button v-for="cat in categories" :key="cat" @click="selectedCategory = cat"
+          <div class="flex gap-1 items-center">
+            <!-- 全部筛选 -->
+            <button @click="filterMode = '全部'"
+              class="px-2 py-1 text-[9px] font-bold rounded-full transition-all border"
+              :class="filterMode === '全部' ? 'bg-gray-100 text-black border-white' : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+            >全部</button>
+
+            <button v-for="cat in categories" :key="cat" @click="selectedCategory = cat; filterMode = cat"
               class="px-2.5 py-1 text-[9px] font-bold rounded-full transition-all border"
-              :class="selectedCategory === cat ? categoryClass(cat) : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+              :class="filterMode === cat ? categoryClass(cat) : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
             >{{ cat }}</button>
+
+            <!-- 已完成筛选 -->
+            <button @click="filterMode = '已完成'"
+              class="px-2 py-1 text-[9px] font-bold rounded-full transition-all border"
+              :class="filterMode === '已完成' ? 'bg-green-500 text-white border-green-400' : 'border-lab-border/30 text-lab-text-dim/40 hover:text-lab-text-dim/60'"
+            >已完成</button>
           </div>
           <button @click="addTodo" :disabled="!newTodoText.trim() && !newTodoImageUrl"
             class="px-4 py-1.5 bg-lab-accent text-white text-[10px] font-black rounded-lg hover:brightness-110 disabled:opacity-20 transition-all shadow-lg shadow-lab-accent/20"
@@ -85,7 +97,10 @@
 
       <!-- Missions Feed -->
       <div class="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar space-y-4" @dragover.prevent @drop="handleGlobalDrop">
-        <div v-for="(todo, index) in store.todos" :key="todo.id" 
+        <div v-if="filteredTodos.length === 0" class="py-20 text-center italic text-xs text-lab-text-dim/20">
+          此分类下暂无任务
+        </div>
+        <div v-for="(todo, index) in filteredTodos" :key="todo.id" 
           draggable="true" @dragstart="handleDragStart(index)" @dragover.prevent="handleDragOver(index)" @drop.stop="handleDrop"
           class="group relative bg-lab-surface/40 border border-lab-border/50 rounded-2xl p-4 transition-all duration-500 hover:border-lab-accent/30 shadow-sm overflow-hidden"
           :class="[todo.status === 'done' ? 'opacity-50 grayscale' : '']"
@@ -168,6 +183,7 @@ const newTodoText = ref('');
 const newTodoImageUrl = ref(null);
 const isUploading = ref(false);
 const selectedCategory = ref('需求');
+const filterMode = ref('全部'); // 新增：当前筛选模式
 const categories = ['需求', '修复', '优化', '杂项'];
 const draggingIndex = ref(null);
 
@@ -178,6 +194,14 @@ const tempEditImage = ref(null);
 const vFocus = { mounted: (el) => el.focus() };
 
 const pendingTodosCount = computed(() => store.todos.filter(t => t.status !== 'done').length);
+
+// 新增：根据 filterMode 过滤后的任务列表
+const filteredTodos = computed(() => {
+  if (filterMode.value === '全部') return store.todos;
+  if (filterMode.value === '已完成') return store.todos.filter(t => t.status === 'done');
+  // 否则按分类筛选（且只显示未完成的）
+  return store.todos.filter(t => t.category === filterMode.value && t.status !== 'done');
+});
 
 const toggleExpand = (tag) => { expandedTag.value = expandedTag.value === tag ? null : tag; };
 
@@ -223,7 +247,15 @@ const handlePaste = async (e, mode) => {
 };
 
 const setStatus = (todo, status) => {
-  const updated = store.todos.map(t => t.id === todo.id ? { ...t, status } : t);
+  let updated = store.todos.map(t => t.id === todo.id ? { ...t, status } : t);
+  
+  // 如果标记为已完成，则将其移动到列表末尾
+  if (status === 'done') {
+    const target = updated.find(t => t.id === todo.id);
+    updated = updated.filter(t => t.id !== todo.id);
+    updated.push(target);
+  }
+  
   store.updateTodos(updated);
 };
 
