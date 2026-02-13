@@ -76,6 +76,8 @@ onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search);
   const autoTag = urlParams.get('tag');
   const targetPath = urlParams.get('path');
+  const shouldResume = urlParams.get('resume') === 'true';
+  const resumeIndex = urlParams.get('index');
 
   // 如果 URL 显式提供了路径（如点击独立窗口打开），则立即通知后端切换
   if (targetPath) {
@@ -88,6 +90,12 @@ onMounted(() => {
     if (targetPath) bootCmd = `cd "${targetPath}"; ${bootCmd}`;
     store.createTab(autoTag, 'pop-' + Date.now(), bootCmd);
     // 清理 URL 保持整洁
+    window.history.replaceState({}, '', '/');
+  } else if (shouldResume && targetPath) {
+    // 恢复自动保存的 session：使用索引号
+    const indexStr = resumeIndex ? ` ${resumeIndex}` : '';
+    const bootCmd = `cd "${targetPath}"; gemini --resume${indexStr}`;
+    store.createTab('恢复会话', 'pop-' + Date.now(), bootCmd);
     window.history.replaceState({}, '', '/');
   } else if (store.terminals.length === 0) {
     store.createTab();

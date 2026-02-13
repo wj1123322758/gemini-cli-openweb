@@ -8,10 +8,12 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
     const broadcastProjectState = (path) => {
         const hashes = getPossibleHashes(path);
         const checkpoints = checkpointService.getCheckpoints(path);
+        const resumes = checkpointService.getResumes(path);
         const todos = todoService.readTodos(path);
         
         io.emit('project-info', { path, hashes });
         io.emit('checkpoint-list', checkpoints);
+        io.emit('resume-list', resumes);
         io.emit('todo-list', todos);
     };
 
@@ -20,10 +22,15 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
         const hashes = getPossibleHashes(currentProjectPath);
         socket.emit('project-info', { path: currentProjectPath, hashes });
         socket.emit('checkpoint-list', checkpointService.getCheckpoints(currentProjectPath));
+        socket.emit('resume-list', checkpointService.getResumes(currentProjectPath));
         socket.emit('todo-list', todoService.readTodos(currentProjectPath));
 
         socket.on('get-checkpoints', () => {
             socket.emit('checkpoint-list', checkpointService.getCheckpoints(currentProjectPath));
+        });
+
+        socket.on('get-resumes', () => {
+            socket.emit('resume-list', checkpointService.getResumes(currentProjectPath));
         });
 
         socket.on('get-todos', () => {
@@ -70,6 +77,11 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
         socket.on('delete-checkpoint', (tag) => {
             checkpointService.deleteCheckpoint(currentProjectPath, tag);
             broadcastProjectState(currentProjectPath);
+        });
+
+        socket.on('touch-session', ({ projectHash, sessionFileName }, callback) => {
+            const result = checkpointService.touchSession(projectHash, sessionFileName);
+            if (callback) callback(result);
         });
     });
 
