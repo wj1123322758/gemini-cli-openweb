@@ -69,10 +69,14 @@ import { onMounted } from 'vue';
 import { useAppStore } from './stores/app';
 import Sidebar from './components/Sidebar.vue';
 import TerminalView from './components/TerminalView.vue';
+import { notificationService } from './services/notificationService';
 
 const store = useAppStore();
 
 onMounted(() => {
+  // Request notification permission
+  notificationService.requestPermission();
+
   const urlParams = new URLSearchParams(window.location.search);
   const autoTag = urlParams.get('tag');
   const targetPath = urlParams.get('path');

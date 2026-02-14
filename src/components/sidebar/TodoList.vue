@@ -120,6 +120,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../../stores/app';
 import { formatTodoContent } from '../../services/terminalLogic';
+import { notificationService } from '../../services/notificationService';
 
 const store = useAppStore();
 const newTodoText = ref('');
@@ -183,6 +184,12 @@ const setStatus = (todo, status) => {
     const target = updated.find(t => t.id === todo.id);
     updated = updated.filter(t => t.id !== todo.id);
     updated.push(target);
+    
+    // Notify task completion
+    notificationService.notify('任务完成', {
+      body: todo.text,
+      tag: todo.id
+    });
   }
   store.updateTodos(updated);
 };

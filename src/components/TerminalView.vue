@@ -52,12 +52,15 @@ import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
 import { useAppStore } from '../stores/app'
+import { checkIsInGemini } from '../services/terminalLogic'
+import { notificationService } from '../services/notificationService'
 
 const props = defineProps(['id', 'isActive', 'initialCommand'])
 const store = useAppStore()
 const terminalContainer = ref(null)
 let term = null
 let fitAddon = null
+let notificationDebounce = null
 
 const basicCmds = [
   { label: '启动', value: 'gemini', title: '运行 Gemini CLI' },
@@ -174,7 +177,22 @@ onMounted(() => {
   })
 
   const outputListener = ({ id, data }) => {
-    if (id === props.id) term.write(data)
+    if (id === props.id) {
+      term.write(data)
+      
+      // Notification logic: check if waiting for input
+      clearTimeout(notificationDebounce)
+      notificationDebounce = setTimeout(() => {
+        if (checkIsInGemini(term)) {
+          notificationService.notify('Gemini 等待操作', {
+            body: '终端已就绪，请继续指令',
+            requireBlur: true, // Only notify if window is not focused
+            tag: 'terminal-waiting-' + props.id,
+            renotify: false
+          })
+        }
+      }, 1500) // 1.5s delay after last output to ensure it's actually waiting
+    }
   }
   store.socket.on('output', outputListener)
 
@@ -200,6 +218,7 @@ onMounted(() => {
     store.socket.off('output', outputListener)
     window.removeEventListener('resize', handleResize)
     store.xtermInstances.delete(props.id)
+    clearTimeout(notificationDebounce)
     term.dispose()
   })
 })
