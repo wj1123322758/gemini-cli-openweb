@@ -1,7 +1,7 @@
 import { getPossibleHashes, normalizePath } from '../utils/pathHelper.js';
 import os from 'os';
 
-export function registerHandlers(io, ptyService, todoService, checkpointService) {
+export function registerHandlers(io, ptyService, todoService, checkpointService, skillService) {
     // 核心改进：初始路径设为用户家目录，防止误改源码
     let currentProjectPath = os.homedir();
 
@@ -82,6 +82,40 @@ export function registerHandlers(io, ptyService, todoService, checkpointService)
         socket.on('touch-session', ({ projectHash, sessionFileName }, callback) => {
             const result = checkpointService.touchSession(projectHash, sessionFileName);
             if (callback) callback(result);
+        });
+
+        // Skill 相关事件
+        socket.on('get-skills', async () => {
+            const skills = await skillService.getSkills();
+            socket.emit('skill-list', skills);
+        });
+
+        socket.on('delete-skill', async (skillName) => {
+            const result = await skillService.deleteSkill(skillName);
+            if (result.success) {
+                const skills = await skillService.getSkills();
+                io.emit('skill-list', skills);
+            }
+            socket.emit('skill-operation-result', { operation: 'delete', skillName, ...result });
+        });
+
+        socket.on('get-skill-doc', async (skillName) => {
+            const doc = await skillService.getSkillDoc(skillName);
+            socket.emit('skill-doc', { skillName, doc });
+        });
+
+        socket.on('toggle-skill', async ({ skillName, enable }) => {
+            const result = await skillService.toggleSkill(skillName, enable);
+            if (result.success) {
+                const skills = await skillService.getSkills();
+                io.emit('skill-list', skills);
+            }
+            socket.emit('skill-operation-result', { operation: enable ? 'enable' : 'disable', skillName, ...result });
+        });
+
+        // 打开文件夹
+        socket.on('open-folder', (folderPath) => {
+            skillService.openFolder(folderPath);
         });
     });
 

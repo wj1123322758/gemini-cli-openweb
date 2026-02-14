@@ -1,0 +1,8 @@
+{
+  "skills": {
+    "disabled": [
+      "vue-testing-best-practices",
+      "vue-pinia-best-practices"
+    ]
+  }
+}

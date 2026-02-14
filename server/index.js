@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { PtyService } from './services/ptyService.js';
 import { TodoService } from './services/todoService.js';
 import { CheckpointService } from './services/checkpointService.js';
+import { SkillService } from './services/skillService.js';
 import { registerHandlers } from './socket/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,9 +24,10 @@ const io = new Server(server, {
 const ptyService = new PtyService(io);
 const todoService = new TodoService();
 const checkpointService = new CheckpointService();
+const skillService = new SkillService();
 
 // Register Socket Handlers
-const socketManager = registerHandlers(io, ptyService, todoService, checkpointService);
+const socketManager = registerHandlers(io, ptyService, todoService, checkpointService, skillService);
 
 // Middleware
 app.use(express.static(path.join(__dirname, '../dist')));

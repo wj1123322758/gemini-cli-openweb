@@ -24,6 +24,13 @@
         任务清单
         <span v-if="pendingTodosCount > 0" class="absolute top-1 right-2 w-1.5 h-1.5 bg-lab-accent rounded-full animate-pulse shadow-[0_0_5px_#ff6ac1]"></span>
       </button>
+      <button 
+        @click="switchTab('skills')"
+        class="flex-1 py-2 text-[10px] font-bold tracking-tight rounded-md outline-none whitespace-nowrap transition-all"
+        :class="activeTab === 'skills' ? 'bg-lab-surface text-lab-accent border border-lab-accent/20' : 'text-lab-text-dim/70 hover:text-lab-text-dim'"
+      >
+        Skills
+      </button>
     </div>
 
     <!-- Content Area (Dynamic Components) -->
@@ -43,6 +50,7 @@ import { useAppStore } from '../stores/app';
 import ArchiveList from './sidebar/ArchiveList.vue';
 import ResumeList from './sidebar/ResumeList.vue';
 import TodoList from './sidebar/TodoList.vue';
+import SkillList from './sidebar/SkillList.vue';
 
 const store = useAppStore();
 const activeTab = ref('todos');
@@ -53,6 +61,7 @@ const currentView = computed(() => {
     case 'checkpoints': return ArchiveList;
     case 'resumes': return ResumeList;
     case 'todos': return TodoList;
+    case 'skills': return SkillList;
     default: return TodoList;
   }
 });
@@ -65,5 +74,6 @@ const switchTab = (tab) => {
   if (tab === 'checkpoints') store.socket.emit('get-checkpoints');
   if (tab === 'resumes') store.socket.emit('get-resumes');
   if (tab === 'todos') store.socket.emit('get-todos');
+  if (tab === 'skills') store.socket.emit('get-skills');
 };
 </script>
